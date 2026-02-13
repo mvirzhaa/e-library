@@ -28,6 +28,54 @@ class AdminController extends Controller
         return view('admin.books', compact('books'));
     }
 
+    // Menampilkan halaman form tambah buku
+    public function createBook()
+    {
+        // Ambil kategori & matkul yang aktif saja
+        $categories = \App\Models\Category::where('is_active', true)->get();
+        $courses = \App\Models\Course::where('is_active', true)->get();
+
+        return view('admin.books_create', compact('categories', 'courses'));
+    }
+
+    // Memproses data simpan buku
+    public function storeBook(\Illuminate\Http\Request $request)
+    {
+        $request->validate([
+            'judul_buku' => 'required|max:255',
+            'penerbit' => 'required|max:255',
+            'tahun_terbit' => 'required|numeric',
+            'kategori' => 'required',
+            'file_pdf' => 'required|mimes:pdf|max:30720', // Max 30MB
+            'cover_image' => 'nullable|image|max:2048', // Max 2MB
+        ]);
+
+        // Simpan File PDF
+        $pdfPath = $request->file('file_pdf')->store('ebooks', 'public');
+
+        // Simpan Gambar Cover (Jika ada)
+        $coverPath = null;
+        if ($request->hasFile('cover_image')) {
+            $coverPath = $request->file('cover_image')->store('covers', 'public');
+        }
+
+        // Masukkan ke Database
+        \App\Models\Ebook::create([
+            'title'          => $request->judul_buku,
+            'slug'           => \Illuminate\Support\Str::slug($request->judul_buku . '-' . time()),
+            'publisher'      => $request->penerbit,
+            'publish_year'   => $request->tahun_terbit,
+            'category'       => $request->kategori,
+            'is_textbook'    => $request->has('is_buku_kuliah'),
+            'related_course' => $request->mata_kuliah_terkait,
+            'file_path'      => $pdfPath,
+            'cover_path'     => $coverPath,
+            'download_count' => 0
+        ]);
+
+        return redirect()->route('admin.books')->with('success', 'Buku baru berhasil ditambahkan!');
+    }
+
     // 3. Manajemen User (List)
     public function users()
     {
@@ -67,10 +115,13 @@ class AdminController extends Controller
         return back()->with('success', 'Kategori berhasil ditambahkan.');
     }
 
-    public function destroyCategory($id)
+   public function toggleCategory($id)
     {
-        \App\Models\Category::findOrFail($id)->delete();
-        return back()->with('success', 'Kategori dihapus.');
+        $category = \App\Models\Category::findOrFail($id);
+        $category->update(['is_active' => !$category->is_active]); // Membalikkan status (true jadi false, dst)
+
+        $status = $category->is_active ? 'diaktifkan' : 'dinonaktifkan';
+        return back()->with('success', "Kategori berhasil {$status}.");
     }
 
     // --- MANAJEMEN MATA KULIAH ---
@@ -87,9 +138,13 @@ class AdminController extends Controller
         return back()->with('success', 'Mata Kuliah berhasil ditambahkan.');
     }
 
-    public function destroyCourse($id)
+    public function toggleCourse($id)
     {
-        \App\Models\Course::findOrFail($id)->delete();
-        return back()->with('success', 'Mata Kuliah dihapus.');
+        $course = \App\Models\Course::findOrFail($id);
+        $course->update(['is_active' => !$course->is_active]);
+
+        $status = $course->is_active ? 'diaktifkan' : 'dinonaktifkan';
+        return back()->with('success', "Mata Kuliah berhasil {$status}.");
     }
+
 }

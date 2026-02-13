@@ -10,5 +10,5 @@ class Course extends Model
     //
     use HasFactory;
 
-    protected $fillable = ['name'];
+    protected $fillable = ['name', 'is_active'];
 }

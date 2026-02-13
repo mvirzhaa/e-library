@@ -11,50 +11,64 @@ class EbookController extends Controller
 {
     public function index(Request $request)
     {
-        // 1. Ambil Data untuk Dropdown Filter (Agar user tidak ngetik manual)
-        $categories = Ebook::select('category')->distinct()->pluck('category');
-        $years = Ebook::select('publish_year')->distinct()->orderBy('publish_year', 'desc')->pluck('publish_year');
-        $courses = Ebook::whereNotNull('related_course')->select('related_course')->distinct()->pluck('related_course');
+        // 1. Ambil HANYA nama kategori & matkul yang statusnya AKTIF
+        $activeCategories = \App\Models\Category::where('is_active', true)->pluck('name');
+        $activeCourses = \App\Models\Course::where('is_active', true)->pluck('name');
 
-        // 2. Logic Filter (Pencarian)
-        $query = Ebook::query();
+        // 2. Buat Query Dasar: Filter buku berdasarkan status aktif tersebut
+        $query = \App\Models\Ebook::whereIn('category', $activeCategories)
+            ->where(function($q) use ($activeCourses) {
+                $q->whereIn('related_course', $activeCourses)
+                  ->orWhereNull('related_course')
+                  ->orWhere('related_course', ''); // Tetap tampilkan buku umum (tanpa matkul)
+            });
 
-        // Filter berdasarkan Pencarian Judul
-        if ($request->filled('search')) {
+        // 3. Fitur Pencarian & Filter (Bawaan Anda sebelumnya)
+        if ($request->has('search') && $request->search != '') {
             $query->where('title', 'like', '%' . $request->search . '%');
         }
 
-        // Filter berdasarkan Kategori
-        if ($request->filled('category')) {
-            $query->where('category', $request->category);
+        if ($request->has('kategori') && $request->kategori != '') {
+            $query->where('category', $request->kategori);
         }
 
-        // Filter berdasarkan Mata Kuliah
-        if ($request->filled('course')) {
-            $query->where('related_course', $request->course);
+        if ($request->has('mata_kuliah') && $request->mata_kuliah != '') {
+            $query->where('related_course', $request->mata_kuliah);
         }
 
-        // Filter berdasarkan Tahun
-        if ($request->filled('year')) {
-            $query->where('publish_year', $request->year);
-        }
+        // 4. Ambil datanya (Paginasi)
+        $ebooks = $query->latest()->paginate(10);
 
-        // Ambil data hasil filter (Paginate agar rapi)
-        $ebooks = $query->latest()->paginate(12)->withQueryString();
+        // Kirim juga data kategori & matkul aktif ke View untuk dropdown filter di Dashboard
+        $categories = \App\Models\Category::where('is_active', true)->get();
+        $courses = \App\Models\Course::where('is_active', true)->get();
 
-        // 3. Ambil Buku Terpopuler (Untuk Section Atas)
-        // Diurutkan berdasarkan download_count tertinggi, ambil 4 saja
-        $popularBooks = Ebook::orderByDesc('download_count')->take(4)->get();
+        $years = \App\Models\Ebook::select('publish_year')
+                    ->distinct()
+                    ->orderBy('publish_year', 'desc')
+                    ->pluck('publish_year');
 
-        return view('dashboard', compact('ebooks', 'popularBooks', 'categories', 'years', 'courses'));
+        // --- TAMBAHAN BARU: Mengambil data buku terpopuler ---
+        $popularBooks = \App\Models\Ebook::whereIn('category', $activeCategories)
+            ->where(function($q) use ($activeCourses) {
+                $q->whereIn('related_course', $activeCourses)
+                  ->orWhereNull('related_course')
+                  ->orWhere('related_course', '');
+            })
+            ->orderBy('download_count', 'desc')
+            ->take(5) // Ambil 5 buku terpopuler
+            ->get();
+
+        // Jangan lupa $popularBooks dimasukkan ke dalam compact()
+        return view('dashboard', compact('ebooks', 'categories', 'courses', 'years', 'popularBooks'));
     }
 
     public function create()
-{
-    $categories = \App\Models\Category::all();
-    $courses = \App\Models\Course::all();
-    return view('ebooks.create', compact('categories', 'courses'));
-}
+    {
+        $categories = \App\Models\Category::where('is_active', true)->get(); // Hanya ambil yang aktif
+        $courses = \App\Models\Course::where('is_active', true)->get();    // Hanya ambil yang aktif
+        return view('ebooks.create', compact('categories', 'courses'));
+    }
 
     public function store(Request $request)
     {

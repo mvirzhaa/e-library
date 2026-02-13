@@ -21,20 +21,31 @@
             <table class="w-full text-left">
                 <thead class="bg-gray-50 border-b border-gray-100">
                     <tr>
-                        <th class="p-4 font-semibold text-slate-600">Nama Mata Kuliah</th>
-                        <th class="p-4 text-right font-semibold text-slate-600">Aksi</th>
-                    </tr>
+    <th class="p-4 font-semibold text-slate-600">Nama Mata Kuliah</th>
+    <th class="p-4 font-semibold text-slate-600 text-center">Status</th> <th class="p-4 text-right font-semibold text-slate-600">Aksi</th>
+</tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                     @forelse($courses as $course)
                     <tr class="hover:bg-gray-50">
                         <td class="p-4 font-medium text-slate-700">{{ $course->name }}</td>
-                        <td class="p-4 text-right">
-                            <form action="{{ route('admin.courses.delete', $course->id) }}" method="POST" onsubmit="return confirm('Yakin ingin menghapus mata kuliah ini?');">
-                                @csrf @method('DELETE')
-                                <button class="text-red-500 hover:text-red-700 text-sm font-semibold bg-red-50 px-3 py-1 rounded-full">Hapus</button>
-                            </form>
-                        </td>
+
+<td class="p-4 text-center">
+    @if($course->is_active)
+        <span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold">Aktif</span>
+    @else
+        <span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold">Nonaktif</span>
+    @endif
+</td>
+
+<td class="p-4 text-right">
+    <form action="{{ route('admin.courses.toggle', $course->id) }}" method="POST">
+        @csrf @method('PATCH')
+        <button class="{{ $course->is_active ? 'text-red-600 hover:text-red-800 bg-red-50' : 'text-green-600 hover:text-green-800 bg-green-50' }} px-4 py-1.5 rounded-full text-sm font-semibold transition">
+            {{ $course->is_active ? 'Nonaktifkan' : 'Aktifkan' }}
+        </button>
+    </form>
+</td>
                     </tr>
                     @empty
                     <tr>

@@ -92,20 +92,20 @@
 
                         <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Kategori</label>
-                            <select name="category" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white">
+                            <select name="kategori" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white">
                                 <option value="">Semua Kategori</option>
                                 @foreach($categories as $cat)
-                                    <option value="{{ $cat }}" {{ request('category') == $cat ? 'selected' : '' }}>{{ $cat }}</option>
+                                    <option value="{{ $cat->name }}" {{ request('kategori') == $cat->name ? 'selected' : '' }}>{{ $cat->name }}</option>
                                 @endforeach
                             </select>
                         </div>
 
                         <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Mata Kuliah</label>
-                            <select name="course" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white">
+                            <select name="mata_kuliah" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white">
                                 <option value="">Semua Matkul</option>
                                 @foreach($courses as $course)
-                                    <option value="{{ $course }}" {{ request('course') == $course ? 'selected' : '' }}>{{ $course }}</option>
+                                    <option value="{{ $course->name }}" {{ request('mata_kuliah') == $course->name ? 'selected' : '' }}>{{ $course->name }}</option>
                                 @endforeach
                             </select>
                         </div>

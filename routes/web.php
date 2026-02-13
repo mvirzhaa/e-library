@@ -38,19 +38,27 @@ Route::get('/dashboard', function (Request $request) { // 1. Tambahkan Request $
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'index'])->name('dashboard');
     Route::get('/books', [AdminController::class, 'books'])->name('books');
+    // --- 2 BARIS BARU INI UNTUK FITUR TAMBAH BUKU ---
+    Route::get('/books/create', [AdminController::class, 'createBook'])->name('books.create');
+    Route::post('/books', [AdminController::class, 'storeBook'])->name('books.store');
+    // ------------------------------------------------
     Route::delete('/books/{id}', [AdminController::class, 'destroyBook'])->name('books.delete');
 
     Route::get('/users', [AdminController::class, 'users'])->name('users');
     Route::delete('/users/{id}', [AdminController::class, 'destroyUser'])->name('users.delete');
-    // Manajemen Kategori
+   // Manajemen Kategori
     Route::get('/categories', [AdminController::class, 'categories'])->name('categories');
     Route::post('/categories', [AdminController::class, 'storeCategory'])->name('categories.store');
-    Route::delete('/categories/{id}', [AdminController::class, 'destroyCategory'])->name('categories.delete');
+
+    // INI YANG BERUBAH (Dari delete menjadi patch dan memanggil fungsi toggle)
+    Route::patch('/categories/{id}/toggle', [AdminController::class, 'toggleCategory'])->name('categories.toggle');
 
     // Manajemen Mata Kuliah
     Route::get('/courses', [AdminController::class, 'courses'])->name('courses');
     Route::post('/courses', [AdminController::class, 'storeCourse'])->name('courses.store');
-    Route::delete('/courses/{id}', [AdminController::class, 'destroyCourse'])->name('courses.delete');
+
+    // INI YANG BERUBAH (Dari delete menjadi patch dan memanggil fungsi toggle)
+    Route::patch('/courses/{id}/toggle', [AdminController::class, 'toggleCourse'])->name('courses.toggle');
 });
 
 // Route Profil Bawaan Breeze
