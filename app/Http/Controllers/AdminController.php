@@ -147,4 +147,29 @@ class AdminController extends Controller
         return back()->with('success', "Mata Kuliah berhasil {$status}.");
     }
 
+    public function updateRole(\Illuminate\Http\Request $request, $id)
+    {
+        // 1. Keamanan Lapis Baja: HANYA SUPERADMIN yang boleh mengubah role!
+        if (auth()->user()->role !== 'superadmin') {
+            return back()->with('error', 'Akses Ditolak! Hanya Superadmin yang bisa mengubah jabatan.');
+        }
+
+        // 2. Validasi input role (Hanya boleh 4 ini)
+        $request->validate([
+            'role' => 'required|in:superadmin,admin,dosen,user'
+        ]);
+
+        $user = \App\Models\User::findOrFail($id);
+
+        // 3. Keamanan: Cegah superadmin mengubah rolenya sendiri jadi user biasa (agar tidak bunuh diri/terkunci)
+        if ($user->id === auth()->id() && $request->role !== 'superadmin') {
+            return back()->with('error', 'Anda tidak bisa menurunkan jabatan Anda sendiri!');
+        }
+
+        // 4. Update rolenya
+        $user->update(['role' => $request->role]);
+
+        return back()->with('success', "Role {$user->name} berhasil diubah menjadi " . strtoupper($request->role));
+    }
+
 }

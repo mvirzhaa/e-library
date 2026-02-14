@@ -11,8 +11,8 @@ class IsAdmin
     public function handle(Request $request, Closure $next): Response
     {
         // Logika pengecekan
-        if (auth()->check() && auth()->user()->role !== 'admin') {
-            abort(403, 'AKSES DITOLAK: Khusus Admin.');
+        if (auth()->check() && !in_array(auth()->user()->role, ['admin', 'superadmin'])) {
+            abort(403, 'AKSES DITOLAK: Khusus Admin atau Super Admin.');
         }
 
         return $next($request);

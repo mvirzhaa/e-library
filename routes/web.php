@@ -17,7 +17,7 @@ Route::middleware('auth')->group(function () {
     // Dashboard User (Tempat list buku)
     // Route Dashboard (Pengecekan Role)
 Route::get('/dashboard', function (Request $request) { // 1. Tambahkan Request $request disini
-    if (auth()->user()->role === 'admin') {
+    if (in_array(auth()->user()->role, ['admin', 'superadmin']))   {
         return redirect()->route('admin.dashboard');
     }
 
@@ -37,6 +37,7 @@ Route::get('/dashboard', function (Request $request) { // 1. Tambahkan Request $
 // Grup Khusus ADMIN
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'index'])->name('dashboard');
+    Route::patch('/users/{id}/role', [AdminController::class, 'updateRole'])->name('users.update_role');
     Route::get('/books', [AdminController::class, 'books'])->name('books');
     // --- 2 BARIS BARU INI UNTUK FITUR TAMBAH BUKU ---
     Route::get('/books/create', [AdminController::class, 'createBook'])->name('books.create');
