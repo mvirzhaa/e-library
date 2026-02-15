@@ -21,38 +21,6 @@
                     <td class="px-6 py-4 font-medium text-gray-800">{{ $user->name }}</td>
                     <td class="px-6 py-4 text-gray-600">{{ $user->email }}</td>
                     <td class="p-4">
-    @if(auth()->user()->role === 'superadmin' && auth()->user()->id !== $user->id)
-        <form action="{{ route('admin.users.update_role', $user->id) }}" method="POST" class="flex flex-col gap-2">
-    @csrf
-    @method('PATCH')
-    <div class="flex gap-2">
-        <select name="role" class="text-xs border border-slate-300 rounded-md px-2 py-1 outline-none">
-            <option value="user" {{ $user->role === 'user' ? 'selected' : '' }}>Mahasiswa</option>
-            <option value="dosen" {{ $user->role === 'dosen' ? 'selected' : '' }}>Dosen</option>
-            <option value="admin" {{ $user->role === 'admin' ? 'selected' : '' }}>Admin</option>
-        </select>
-
-        <select name="is_active" class="text-xs border border-slate-300 rounded-md px-2 py-1 outline-none {{ $user->is_active ? 'text-green-600' : 'text-red-600' }}">
-            <option value="1" {{ $user->is_active ? 'selected' : '' }}>🟢 Aktif</option>
-            <option value="0" {{ !$user->is_active ? 'selected' : '' }}>🔴 Nonaktif</option>
-        </select>
-
-        <button type="submit" class="bg-blue-600 text-white px-3 py-1 rounded-md text-xs font-bold hover:bg-blue-700">Simpan</button>
-    </div>
-</form>
-    @else
-        @if($user->role === 'superadmin')
-            <span class="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-bold">👑 Superadmin</span>
-        @elseif($user->role === 'admin')
-            <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">🛡️ Admin</span>
-        @elseif($user->role === 'dosen')
-            <span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold">👨‍🏫 Dosen</span>
-        @else
-            <span class="bg-slate-100 text-slate-700 px-3 py-1 rounded-full text-xs font-bold">🎓 Mahasiswa</span>
-        @endif
-    @endif
-</td>
-                    <td class="p-4">
         @php
             $isSuperadmin = $user->role === 'superadmin';
             $amIAdmin = auth()->user()->role === 'admin';
