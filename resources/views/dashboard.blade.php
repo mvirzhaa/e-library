@@ -146,7 +146,9 @@
 
                     <div class="h-60 bg-slate-100 relative overflow-hidden">
                         @if($book->cover_path)
-                            <img src="{{ Storage::url($book->cover_path) }}" alt="{{ $book->title }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                            @if($book->cover_path)
+    <img src="{{ asset('storage/' . $book->cover_path) }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" alt="{{ $book->title }}">
+@endif
                         @else
                             <div class="flex flex-col items-center justify-center h-full text-slate-400">
                                 <span class="text-4xl mb-2">📚</span>
