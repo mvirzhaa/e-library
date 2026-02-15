@@ -52,17 +52,73 @@
         @endif
     @endif
 </td>
-                    <td class="px-6 py-4 text-center">
-                        @if(auth()->user()->id !== $user->id)
-                            <form action="{{ route('admin.users.update_role', $user->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus user ini?');">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="bg-red-600 text-white px-2 py-1 rounded-md text-xs font-bold hover:bg-red-700 transition">Delete</button>
-                            </form>
-                        @else
-                            <span class="text-xs text-gray-400 italic">Tidak bisa menghapus diri sendiri</span>
+                    <td class="p-4">
+        @php
+            $isSuperadmin = $user->role === 'superadmin';
+            $amIAdmin = auth()->user()->role === 'admin';
+            $amISuperadmin = auth()->user()->role === 'superadmin';
+            $isMyself = auth()->user()->id === $user->id;
+
+            // Logika Cerdas: Boleh edit JIKA (Saya Superadmin edit orang lain) ATAU (Saya Admin edit selain Superadmin dan diri sendiri)
+            $canEdit = ($amISuperadmin && !$isMyself) || ($amIAdmin && !$isMyself && !$isSuperadmin);
+        @endphp
+
+        @if($canEdit)
+            <form action="{{ route('admin.users.update_role', $user->id) }}" method="POST" class="flex flex-col gap-2">
+                @csrf
+                @method('PATCH')
+                <div class="flex flex-wrap gap-2 items-center">
+                    <select name="role" class="text-xs border border-slate-300 rounded-md px-2 py-1 outline-none focus:ring-1 focus:ring-blue-500">
+                        <option value="user" {{ $user->role === 'user' ? 'selected' : '' }}>Mahasiswa</option>
+                        <option value="dosen" {{ $user->role === 'dosen' ? 'selected' : '' }}>Dosen</option>
+                        <option value="admin" {{ $user->role === 'admin' ? 'selected' : '' }}>Admin</option>
+                        @if($amISuperadmin)
+                            <option value="superadmin" {{ $user->role === 'superadmin' ? 'selected' : '' }}>Superadmin</option>
                         @endif
-                    </td>
+                    </select>
+
+                    <select name="is_active" class="text-xs border border-slate-300 rounded-md px-2 py-1 outline-none {{ $user->is_active ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold' }}">
+                        <option value="1" {{ $user->is_active ? 'selected' : '' }}>🟢 Aktif</option>
+                        <option value="0" {{ !$user->is_active ? 'selected' : '' }}>🔴 Nonaktif</option>
+                    </select>
+
+                    <button type="submit" class="bg-blue-600 text-white px-3 py-1 rounded-md text-xs font-bold hover:bg-blue-700 transition">Save</button>
+                </div>
+            </form>
+        @else
+            <div class="flex flex-col gap-1.5 items-start">
+                @if($user->role === 'superadmin')
+                    <span class="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-[10px] font-bold">👑 Superadmin</span>
+                @elseif($user->role === 'admin')
+                    <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-[10px] font-bold">🛡️ Admin</span>
+                @elseif($user->role === 'dosen')
+                    <span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-[10px] font-bold">👨‍🏫 Dosen</span>
+                @else
+                    <span class="bg-slate-100 text-slate-700 px-3 py-1 rounded-full text-[10px] font-bold">🎓 Mahasiswa</span>
+                @endif
+
+                @if($user->is_active)
+                    <span class="text-green-600 text-[10px] font-bold">🟢 Aktif</span>
+                @else
+                    <span class="text-red-600 text-[10px] font-bold">🔴 Nonaktif</span>
+                @endif
+            </div>
+        @endif
+    </td>
+
+    <td class="p-4">
+        @if($isMyself)
+            <span class="text-xs text-slate-400 italic">Tidak bisa hapus diri sendiri</span>
+        @elseif($amIAdmin && $isSuperadmin)
+            <span class="text-[10px] font-bold text-red-500 border border-red-200 bg-red-50 px-2 py-1 rounded-md uppercase">Terlarang</span>
+        @else
+            <form action="{{ route('users.delete', $user->id) }}" method="POST" onsubmit="return confirm('Yakin ingin menghapus user ini secara permanen?');">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="bg-red-600 text-white px-3 py-1 rounded-md text-xs font-bold hover:bg-red-700 transition shadow-sm">Delete</button>
+            </form>
+        @endif
+    </td>
                 </tr>
                 @endforeach
             </tbody>

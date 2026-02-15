@@ -99,14 +99,23 @@ class AdminController extends Controller
     }
 
     // 5. Hapus User
-    public function destroyUser($id)
+   public function destroyUser($id)
     {
-        $user = User::findOrFail($id);
-        if ($user->role === 'admin') {
-            return back()->with('error', 'Tidak bisa menghapus sesama Admin!');
+        $user = \App\Models\User::findOrFail($id);
+
+        // --- BENTENG KEAMANAN ANTI KUDETA ---
+        if (auth()->user()->role === 'admin' && $user->role === 'superadmin') {
+            return back()->with('error', 'Pemberontakan! Admin tidak bisa menghapus Superadmin.');
         }
+
+        if (auth()->id() === $user->id) {
+            return back()->with('error', 'Anda tidak bisa menghapus akun Anda sendiri.');
+        }
+        // ------------------------------------
+
         $user->delete();
-        return back()->with('success', 'User berhasil dihapus.');
+
+        return back()->with('success', 'Akun berhasil dihapus selamanya.');
     }
 
     // --- MANAJEMEN KATEGORI ---
@@ -155,16 +164,27 @@ class AdminController extends Controller
         return back()->with('success', "Mata Kuliah berhasil {$status}.");
     }
 
-    public function updateRole(Request $request, $id)
+    public function updateRole(\Illuminate\Http\Request $request, $id)
     {
-        // Hanya Admin dan Superadmin yang boleh mengatur user
-        if (!in_array(auth()->user()->role, ['admin', 'superadmin'])) {
-            return back()->with('error', 'Akses Ditolak!');
-        }
-
         $user = \App\Models\User::findOrFail($id);
 
-        // Update role dan is_active secara bersamaan
+        // --- BENTENG KEAMANAN ANTI KUDETA ---
+        // 1. Admin dilarang mengubah data Superadmin
+        if (auth()->user()->role === 'admin' && $user->role === 'superadmin') {
+            return back()->with('error', 'Lancang! Admin tidak diizinkan mengubah data Superadmin.');
+        }
+
+        // 2. Admin dilarang mengangkat Superadmin baru
+        if (auth()->user()->role === 'admin' && $request->role === 'superadmin') {
+            return back()->with('error', 'Akses Ilegal: Hanya Superadmin yang bisa mengangkat Superadmin baru.');
+        }
+
+        // 3. Cegah ganti role sendiri dari sini
+        if (auth()->id() === $user->id && $request->role !== auth()->user()->role) {
+            return back()->with('error', 'Gunakan menu profil untuk mengubah data Anda sendiri.');
+        }
+        // ------------------------------------
+
         $user->update([
             'role' => $request->role,
             'is_active' => $request->is_active
