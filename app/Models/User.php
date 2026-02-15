@@ -21,6 +21,9 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
+        'is_active', // Tambahkan is_active ke dalam fillable agar bisa diisi saat
+
     ];
 
     /**

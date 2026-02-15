@@ -22,17 +22,24 @@
                     <td class="px-6 py-4 text-gray-600">{{ $user->email }}</td>
                     <td class="p-4">
     @if(auth()->user()->role === 'superadmin' && auth()->user()->id !== $user->id)
-        <form action="{{ route('admin.users.update_role', $user->id) }}" method="POST" class="flex items-center gap-2">
-            @csrf
-            @method('PATCH')
-            <select name="role" class="text-xs border border-slate-300 rounded-md px-2 py-1 focus:ring-blue-500 outline-none">
-                <option value="user" {{ $user->role === 'user' ? 'selected' : '' }}>User (Mahasiswa)</option>
-                <option value="dosen" {{ $user->role === 'dosen' ? 'selected' : '' }}>Dosen</option>
-                <option value="admin" {{ $user->role === 'admin' ? 'selected' : '' }}>Admin</option>
-                <option value="superadmin" {{ $user->role === 'superadmin' ? 'selected' : '' }}>Superadmin</option>
-            </select>
-            <button type="submit" class="bg-blue-600 text-white px-2 py-1 rounded-md text-xs font-bold hover:bg-blue-700 transition">Save</button>
-        </form>
+        <form action="{{ route('admin.users.update_role', $user->id) }}" method="POST" class="flex flex-col gap-2">
+    @csrf
+    @method('PATCH')
+    <div class="flex gap-2">
+        <select name="role" class="text-xs border border-slate-300 rounded-md px-2 py-1 outline-none">
+            <option value="user" {{ $user->role === 'user' ? 'selected' : '' }}>Mahasiswa</option>
+            <option value="dosen" {{ $user->role === 'dosen' ? 'selected' : '' }}>Dosen</option>
+            <option value="admin" {{ $user->role === 'admin' ? 'selected' : '' }}>Admin</option>
+        </select>
+
+        <select name="is_active" class="text-xs border border-slate-300 rounded-md px-2 py-1 outline-none {{ $user->is_active ? 'text-green-600' : 'text-red-600' }}">
+            <option value="1" {{ $user->is_active ? 'selected' : '' }}>🟢 Aktif</option>
+            <option value="0" {{ !$user->is_active ? 'selected' : '' }}>🔴 Nonaktif</option>
+        </select>
+
+        <button type="submit" class="bg-blue-600 text-white px-3 py-1 rounded-md text-xs font-bold hover:bg-blue-700">Simpan</button>
+    </div>
+</form>
     @else
         @if($user->role === 'superadmin')
             <span class="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-bold">👑 Superadmin</span>

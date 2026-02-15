@@ -39,12 +39,16 @@ class RegisteredUserController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'role' => 'user',        // Default role: mahasiswa
+            'is_active' => false,    // Default: belum aktif
         ]);
 
         event(new Registered($user));
 
-        Auth::login($user);
+        // HAPUS ATAU BERI KOMENTAR BARIS INI:
+        // Auth::login($user);
 
-        return redirect(route('dashboard', absolute: false));
+        // Redirect ke halaman login dengan pesan sukses
+        return redirect('/login')->with('status', 'Pendaftaran berhasil! Silakan tunggu Admin mengaktifkan akun Anda.');
     }
 }

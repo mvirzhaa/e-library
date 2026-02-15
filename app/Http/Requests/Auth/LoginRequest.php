@@ -43,13 +43,19 @@ class LoginRequest extends FormRequest
 
         if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
-
             throw ValidationException::withMessages([
                 'email' => trans('auth.failed'),
             ]);
         }
 
-        RateLimiter::clear($this->throttleKey());
+        // --- TAMBAHKAN BLOK KODE INI ---
+        if (Auth::user()->is_active == false) {
+            Auth::logout(); // Keluarkan paksa
+            throw ValidationException::withMessages([
+                'email' => 'Akun Anda sedang diverifikasi. Harap tunggu Admin mengaktifkannya.',
+            ]);
+        }
+        // --------------------------------
     }
 
     /**

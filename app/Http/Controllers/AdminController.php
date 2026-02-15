@@ -31,16 +31,24 @@ class AdminController extends Controller
     // Menampilkan halaman form tambah buku
     public function createBook()
     {
+        if (!in_array(auth()->user()->role, ['admin', 'superadmin', 'dosen'])) {
+            abort(403, 'Maaf, hanya Dosen dan Admin yang boleh mengupload buku.');
+        }
         // Ambil kategori & matkul yang aktif saja
         $categories = \App\Models\Category::where('is_active', true)->get();
         $courses = \App\Models\Course::where('is_active', true)->get();
 
+
         return view('admin.books_create', compact('categories', 'courses'));
     }
+
 
     // Memproses data simpan buku
     public function storeBook(\Illuminate\Http\Request $request)
     {
+        if (!in_array(auth()->user()->role, ['admin', 'superadmin', 'dosen'])) {
+            abort(403, 'Maaf, hanya Dosen dan Admin yang boleh mengupload buku.');
+        }
         $request->validate([
             'judul_buku' => 'required|max:255',
             'penerbit' => 'required|max:255',
@@ -147,29 +155,22 @@ class AdminController extends Controller
         return back()->with('success', "Mata Kuliah berhasil {$status}.");
     }
 
-    public function updateRole(\Illuminate\Http\Request $request, $id)
+    public function updateRole(Request $request, $id)
     {
-        // 1. Keamanan Lapis Baja: HANYA SUPERADMIN yang boleh mengubah role!
-        if (auth()->user()->role !== 'superadmin') {
-            return back()->with('error', 'Akses Ditolak! Hanya Superadmin yang bisa mengubah jabatan.');
+        // Hanya Admin dan Superadmin yang boleh mengatur user
+        if (!in_array(auth()->user()->role, ['admin', 'superadmin'])) {
+            return back()->with('error', 'Akses Ditolak!');
         }
-
-        // 2. Validasi input role (Hanya boleh 4 ini)
-        $request->validate([
-            'role' => 'required|in:superadmin,admin,dosen,user'
-        ]);
 
         $user = \App\Models\User::findOrFail($id);
 
-        // 3. Keamanan: Cegah superadmin mengubah rolenya sendiri jadi user biasa (agar tidak bunuh diri/terkunci)
-        if ($user->id === auth()->id() && $request->role !== 'superadmin') {
-            return back()->with('error', 'Anda tidak bisa menurunkan jabatan Anda sendiri!');
-        }
+        // Update role dan is_active secara bersamaan
+        $user->update([
+            'role' => $request->role,
+            'is_active' => $request->is_active
+        ]);
 
-        // 4. Update rolenya
-        $user->update(['role' => $request->role]);
-
-        return back()->with('success', "Role {$user->name} berhasil diubah menjadi " . strtoupper($request->role));
+        return back()->with('success', "Akun {$user->name} berhasil diperbarui.");
     }
 
 }
