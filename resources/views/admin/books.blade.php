@@ -33,12 +33,17 @@
                     <td class="px-6 py-4 font-medium text-gray-800">{{ $book->title }}</td>
                     <td class="px-6 py-4 text-gray-600">{{ $book->publisher }}</td>
                     <td class="px-6 py-4 text-gray-600">{{ $book->download_count }}</td>
-                    <td class="px-6 py-4 text-center">
-                        <form action="{{ route('admin.books.delete', $book->id) }}" method="POST" onsubmit="return confirm('Hapus buku ini selamanya?');">
-                            @csrf @method('DELETE')
-                            <button class="text-red-500 hover:text-red-700 font-medium text-sm bg-red-50 px-3 py-1 rounded-full hover:bg-red-100 transition">Hapus</button>
-                        </form>
-                    </td>
+                    <td class="p-4 flex gap-2">
+        <a href="{{ route('admin.books.edit', $book->id) }}" class="bg-amber-500 text-white px-3 py-1 rounded-md text-xs font-bold hover:bg-amber-600 transition shadow-sm">
+            Edit
+        </a>
+
+        <form action="{{ route('admin.books.delete', $book->id) }}" method="POST" onsubmit="return confirm('Yakin ingin menghapus buku ini? File juga akan terhapus permanen.');">
+            @csrf
+            @method('DELETE')
+            <button type="submit" class="bg-red-600 text-white px-3 py-1 rounded-md text-xs font-bold hover:bg-red-700 transition shadow-sm">Hapus</button>
+        </form>
+    </td>
                 </tr>
                 @endforeach
             </tbody>

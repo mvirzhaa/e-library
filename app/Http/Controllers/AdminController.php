@@ -202,4 +202,70 @@ class AdminController extends Controller
         return back()->with('success', "Akun {$user->name} berhasil diperbarui.");
     }
 
+    // 1. Fungsi Menampilkan Form Edit
+    public function editBook($id)
+    {
+        // Gembok Dosen, Admin, Superadmin
+        if (!in_array(auth()->user()->role, ['admin', 'superadmin', 'dosen'])) {
+            abort(403, 'Akses Ditolak');
+        }
+
+        $book = \App\Models\Ebook::findOrFail($id);
+        $categories = \App\Models\Category::all(); // Ambil data kategori
+        $courses = \App\Models\Course::all();     // Ambil data matkul
+
+        return view('admin.books_edit', compact('book', 'categories', 'courses'));
+    }
+
+    // 2. Fungsi Memproses Perubahan Data
+    public function updateBook(\Illuminate\Http\Request $request, $id)
+    {
+        if (!in_array(auth()->user()->role, ['admin', 'superadmin', 'dosen'])) {
+            abort(403, 'Akses Ditolak');
+        }
+
+        $book = \App\Models\Ebook::findOrFail($id);
+
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'publisher' => 'nullable|string|max:255',
+            'publish_year' => 'nullable|integer',
+            'category' => 'required|string',
+            'related_course' => 'nullable|string',
+            'cover' => 'nullable|image|mimes:jpeg,png,jpg|max:2048', // Cover baru opsional
+            'file' => 'nullable|mimes:pdf|max:20000',               // PDF baru opsional
+        ]);
+
+        // JIKA ADA UPLOAD COVER BARU
+        if ($request->hasFile('cover')) {
+            // Hapus cover lama dari server
+            if ($book->cover_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($book->cover_path)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($book->cover_path);
+            }
+            // Simpan cover baru
+            $book->cover_path = $request->file('cover')->store('covers', 'public');
+        }
+
+        // JIKA ADA UPLOAD PDF BARU
+        if ($request->hasFile('file')) {
+            // Hapus PDF lama dari server
+            if ($book->file_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($book->file_path)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($book->file_path);
+            }
+            // Simpan PDF baru
+            $book->file_path = $request->file('file')->store('ebooks', 'public');
+        }
+
+        // Update data teks
+        $book->title = $request->title;
+        $book->publisher = $request->publisher;
+        $book->publish_year = $request->publish_year;
+        $book->category = $request->category;
+        $book->related_course = $request->related_course;
+
+        $book->save();
+
+        return redirect()->route('admin.books')->with('success', 'Buku berhasil diperbarui!');
+    }
+
 }
