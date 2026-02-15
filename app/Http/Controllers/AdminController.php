@@ -87,6 +87,9 @@ class AdminController extends Controller
     // 3. Manajemen User (List)
     public function users()
     {
+        if (auth()->user()->role === 'dosen') {
+            abort(403, 'Akses Ditolak: Dosen hanya diizinkan mengelola buku.');
+        }
         $users = User::latest()->paginate(10);
         return view('admin.users', compact('users'));
     }
@@ -121,6 +124,9 @@ class AdminController extends Controller
     // --- MANAJEMEN KATEGORI ---
     public function categories()
     {
+        if (auth()->user()->role === 'dosen') {
+            abort(403, 'Akses Ditolak: Dosen hanya diizinkan mengelola buku.');
+        }
         $categories = \App\Models\Category::latest()->get();
         return view('admin.categories', compact('categories'));
     }
@@ -144,6 +150,9 @@ class AdminController extends Controller
     // --- MANAJEMEN MATA KULIAH ---
     public function courses()
     {
+        if (auth()->user()->role === 'dosen') {
+            abort(403, 'Akses Ditolak: Dosen hanya diizinkan mengelola buku.');
+        }
         $courses = \App\Models\Course::latest()->get();
         return view('admin.courses', compact('courses'));
     }
