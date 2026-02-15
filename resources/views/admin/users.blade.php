@@ -112,7 +112,7 @@
         @elseif($amIAdmin && $isSuperadmin)
             <span class="text-[10px] font-bold text-red-500 border border-red-200 bg-red-50 px-2 py-1 rounded-md uppercase">Terlarang</span>
         @else
-            <form action="{{ route('users.delete', $user->id) }}" method="POST" onsubmit="return confirm('Yakin ingin menghapus user ini secara permanen?');">
+            <form action="{{ route('admin.users.delete', $user->id) }}" method="POST" onsubmit="return confirm('Yakin ingin menghapus user ini secara permanen?');">
                 @csrf
                 @method('DELETE')
                 <button type="submit" class="bg-red-600 text-white px-3 py-1 rounded-md text-xs font-bold hover:bg-red-700 transition shadow-sm">Delete</button>
