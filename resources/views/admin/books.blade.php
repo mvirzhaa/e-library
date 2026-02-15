@@ -25,7 +25,7 @@
                 <tr class="hover:bg-gray-50 transition">
                     <td class="px-6 py-4">
                         @if($book->cover_path)
-                            <img src="{{ Storage::url($book->cover_path) }}" class="h-12 w-8 object-cover rounded shadow-sm">
+                            <img src="{{ asset('storage/' . $book->cover_path) }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" alt="{{ $book->title }}">
                         @else
                             <div class="h-12 w-8 bg-gray-200 rounded flex items-center justify-center text-xs">N/A</div>
                         @endif

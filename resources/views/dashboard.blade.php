@@ -57,7 +57,7 @@
                             <div class="flex items-start gap-4 mb-3">
                                 <div class="w-16 h-20 bg-slate-200 rounded-lg flex-shrink-0 overflow-hidden">
                                     @if($book->cover_path)
-                                        <img src="{{ Storage::url($book->cover_path) }}" class="w-full h-full object-cover">
+                                        <img src="{{ asset('storage/' . $book->cover_path) }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" alt="{{ $book->title }}">
                                     @endif
                                 </div>
                                 <div>
