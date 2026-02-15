@@ -21,11 +21,13 @@
                 <div class="flex items-center gap-6">
                     <div class="hidden md:block text-right">
                         <p class="text-sm font-bold text-slate-800">{{ Auth::user()->name }}</p>
-                        <p class="text-xs text-slate-500">Mahasiswa</p>
+                        <p class="text-xs text-slate-500 uppercase">{{ Auth::user()->role ?? 'Mahasiswa' }}</p>
                     </div>
-                    <a href="{{ route('ebooks.create') }}" class="bg-blue-600 text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-blue-700 transition shadow-lg shadow-blue-200">
+                    @if(in_array(auth()->user()->role, ['admin', 'superadmin', 'dosen']))
+                    <a href="{{ route('admin.books.create') }}" class="bg-blue-600 text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-blue-700 transition shadow-lg shadow-blue-200">
                         + Upload Buku
                     </a>
+                    @endif
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
                         <button type="submit" class="text-slate-500 hover:text-red-600 font-medium text-sm transition">Logout</button>
@@ -38,7 +40,7 @@
     <main class="flex-grow py-10">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-            @if(request()->query->count() == 0 && $popularBooks->count() > 0)
+            @if(request()->query->count() == 0 && isset($popularBooks) && $popularBooks->count() > 0)
             <div class="mb-12">
                 <div class="flex items-center mb-6">
                     <div class="p-2 bg-yellow-100 rounded-lg mr-3 text-yellow-600">
@@ -49,33 +51,33 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     @foreach($popularBooks as $book)
-                    <div class="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-1 shadow-xl relative group overflow-hidden">
-                        <div class="absolute top-0 right-0 p-3 opacity-10">
+                    <div class="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-1 shadow-xl relative group overflow-hidden flex flex-col">
+                        <div class="absolute top-0 right-0 p-3 opacity-10 pointer-events-none">
                             <svg class="w-24 h-24 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
                         </div>
                         <div class="bg-white rounded-xl h-full p-4 flex flex-col relative z-10">
                             <div class="flex items-start gap-4 mb-3">
                                 <div class="w-16 h-20 bg-slate-200 rounded-lg flex-shrink-0 overflow-hidden">
                                     @if($book->cover_path)
-                                        <img src="{{ asset('storage/' . $book->cover_path) }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" alt="{{ $book->title }}">
+                                        <img src="{{ asset('storage/' . $book->cover_path) }}" class="w-full h-full object-cover">
                                     @endif
                                 </div>
-                                <div>
-                                    <h3 class="font-bold text-slate-800 line-clamp-2 text-sm leading-tight mb-1">{{ $book->title }}</h3>
+                                <div class="flex-grow">
+                                    <h3 class="font-bold text-slate-800 line-clamp-2 text-sm leading-tight mb-1" title="{{ $book->title }}">{{ $book->title }}</h3>
                                     <p class="text-xs text-slate-500">{{ $book->download_count }}x Diunduh</p>
                                     <span class="inline-block mt-2 px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold uppercase rounded-full tracking-wide">
                                         {{ $book->category }}
                                     </span>
                                 </div>
                             </div>
-                            <div class="flex gap-2 w-full mt-2">
-    <a href="{{ route('ebooks.preview', $book->id) }}" class="flex-1 text-center text-indigo-600 hover:text-white hover:bg-indigo-600 border border-indigo-200 hover:border-indigo-600 px-3 py-1.5 rounded-lg text-xs font-bold transition">
-        Preview
-    </a>
-    <a href="{{ route('ebooks.download', $book->id) }}" class="flex-1 text-center text-blue-600 hover:text-white hover:bg-blue-600 border border-blue-200 hover:border-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold transition">
-        Download
-    </a>
-</div>
+                            <div class="mt-auto flex gap-2 w-full pt-3">
+                                <a href="{{ route('ebooks.preview', $book->id) }}" class="flex-1 text-center bg-indigo-50 text-indigo-700 border border-indigo-200 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-600 hover:text-white transition">
+                                    Preview
+                                </a>
+                                <a href="{{ route('ebooks.download', $book->id) }}" class="flex-1 text-center bg-slate-900 text-white py-1.5 rounded-lg text-xs font-bold hover:bg-blue-600 transition">
+                                    Unduh
+                                </a>
+                            </div>
                         </div>
                     </div>
                     @endforeach
@@ -86,7 +88,6 @@
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-8">
                 <form action="{{ route('dashboard') }}" method="GET">
                     <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-
                         <div class="md:col-span-2">
                             <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Cari Judul</label>
                             <div class="relative">
@@ -94,7 +95,6 @@
                                 <svg class="w-4 h-4 text-slate-400 absolute left-3 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                             </div>
                         </div>
-
                         <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Kategori</label>
                             <select name="kategori" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white">
@@ -104,7 +104,6 @@
                                 @endforeach
                             </select>
                         </div>
-
                         <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Mata Kuliah</label>
                             <select name="mata_kuliah" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white">
@@ -114,7 +113,6 @@
                                 @endforeach
                             </select>
                         </div>
-
                         <div class="flex gap-2">
                             <div class="flex-grow">
                                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Tahun</label>
@@ -151,9 +149,7 @@
 
                     <div class="h-60 bg-slate-100 relative overflow-hidden">
                         @if($book->cover_path)
-                            @if($book->cover_path)
-    <img src="{{ asset('storage/' . $book->cover_path) }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" alt="{{ $book->title }}">
-@endif
+                            <img src="{{ asset('storage/' . $book->cover_path) }}" alt="{{ $book->title }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
                         @else
                             <div class="flex flex-col items-center justify-center h-full text-slate-400">
                                 <span class="text-4xl mb-2">📚</span>
@@ -176,23 +172,23 @@
                             @endif
                         </div>
 
-<div class="mt-auto pt-4 border-t border-slate-100 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-3">
+                        <div class="mt-auto pt-4 border-t border-slate-100 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-3">
+                            <div class="flex items-center text-slate-400 text-xs font-semibold">
+                                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                                {{ $book->download_count }} Unduhan
+                            </div>
+                            <div class="flex items-center gap-2 w-full xl:w-auto">
+                                <a href="{{ route('ebooks.preview', $book->id) }}" class="flex-1 xl:flex-none text-center text-indigo-600 hover:text-white hover:bg-indigo-600 border border-indigo-200 hover:border-indigo-600 px-3 py-1.5 rounded-lg text-xs font-bold transition">
+                                    Preview
+                                </a>
+                                <a href="{{ route('ebooks.download', $book->id) }}" class="flex-1 xl:flex-none text-center text-blue-600 hover:text-white hover:bg-blue-600 border border-blue-200 hover:border-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold transition">
+                                    Unduh
+                                </a>
+                            </div>
+                        </div>
 
-    <div class="flex items-center text-slate-400 text-xs font-semibold">
-        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-        {{ $book->download_count }} Unduhan
-    </div>
-
-    <div class="flex items-center gap-2 w-full xl:w-auto">
-        <a href="{{ route('ebooks.preview', $book->id) }}" class="flex-1 xl:flex-none text-center text-indigo-600 hover:text-white hover:bg-indigo-600 border border-indigo-200 hover:border-indigo-600 px-3 py-1.5 rounded-lg text-xs font-bold transition">
-            Preview
-        </a>
-        <a href="{{ route('ebooks.download', $book->id) }}" class="flex-1 xl:flex-none text-center text-blue-600 hover:text-white hover:bg-blue-600 border border-blue-200 hover:border-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold transition">
-            Unduh
-        </a>
-    </div>
-
-</div>
+                    </div>
+                </div>
                 @empty
                     <div class="col-span-full py-20 text-center">
                         <div class="inline-block p-4 rounded-full bg-slate-100 text-slate-400 mb-4 text-4xl">🔍</div>
