@@ -27,6 +27,7 @@ Route::get('/dashboard', function (Request $request) { // 1. Tambahkan Request $
 
     // Fitur Download
     Route::get('/download/{id}', [EbookController::class, 'download'])->name('ebooks.download');
+    Route::get('/ebooks/{id}/preview', [\App\Http\Controllers\EbookController::class, 'preview'])->name('ebooks.preview');
 
     // Fitur Upload (SEKARANG BISA DIAKSES SEMUA USER LOGIN)
     Route::get('/upload', [EbookController::class, 'create'])->name('ebooks.create');

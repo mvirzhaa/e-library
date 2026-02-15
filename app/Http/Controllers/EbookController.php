@@ -108,4 +108,13 @@ class EbookController extends Controller
         $ebook->increment('download_count');
         return Storage::disk('public')->download($ebook->file_path, $ebook->slug . '.pdf');
     }
+
+    // Fungsi untuk menampilkan halaman Preview PDF
+    public function preview($id)
+    {
+        $ebook = \App\Models\Ebook::findOrFail($id);
+
+        // Kita kirim data buku ke halaman tampilan preview
+        return view('ebooks.preview', compact('ebook'));
+    }
 }

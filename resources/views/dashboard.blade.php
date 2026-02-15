@@ -68,9 +68,14 @@
                                     </span>
                                 </div>
                             </div>
-                            <a href="{{ route('ebooks.download', $book->id) }}" class="mt-auto w-full block text-center bg-slate-900 text-white py-2 rounded-lg text-xs font-bold hover:bg-blue-600 transition">
-                                Download Cepat
-                            </a>
+                            <div class="flex gap-2 w-full mt-2">
+    <a href="{{ route('ebooks.preview', $book->id) }}" class="flex-1 text-center text-indigo-600 hover:text-white hover:bg-indigo-600 border border-indigo-200 hover:border-indigo-600 px-3 py-1.5 rounded-lg text-xs font-bold transition">
+        Preview
+    </a>
+    <a href="{{ route('ebooks.download', $book->id) }}" class="flex-1 text-center text-blue-600 hover:text-white hover:bg-blue-600 border border-blue-200 hover:border-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold transition">
+        Download
+    </a>
+</div>
                         </div>
                     </div>
                     @endforeach
@@ -171,17 +176,23 @@
                             @endif
                         </div>
 
-                        <div class="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
-                            <div class="flex items-center text-slate-400 text-xs font-semibold">
-                                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                                {{ $book->download_count }} Unduhan
-                            </div>
-                            <a href="{{ route('ebooks.download', $book->id) }}" class="text-blue-600 hover:text-white hover:bg-blue-600 border border-blue-200 hover:border-blue-600 px-4 py-1.5 rounded-lg text-xs font-bold transition">
-                                Download
-                            </a>
-                        </div>
-                    </div>
-                </div>
+<div class="mt-auto pt-4 border-t border-slate-100 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-3">
+
+    <div class="flex items-center text-slate-400 text-xs font-semibold">
+        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+        {{ $book->download_count }} Unduhan
+    </div>
+
+    <div class="flex items-center gap-2 w-full xl:w-auto">
+        <a href="{{ route('ebooks.preview', $book->id) }}" class="flex-1 xl:flex-none text-center text-indigo-600 hover:text-white hover:bg-indigo-600 border border-indigo-200 hover:border-indigo-600 px-3 py-1.5 rounded-lg text-xs font-bold transition">
+            Preview
+        </a>
+        <a href="{{ route('ebooks.download', $book->id) }}" class="flex-1 xl:flex-none text-center text-blue-600 hover:text-white hover:bg-blue-600 border border-blue-200 hover:border-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold transition">
+            Unduh
+        </a>
+    </div>
+
+</div>
                 @empty
                     <div class="col-span-full py-20 text-center">
                         <div class="inline-block p-4 rounded-full bg-slate-100 text-slate-400 mb-4 text-4xl">🔍</div>
