@@ -1,59 +1,132 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
-
 <p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+  <img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="300" alt="Laravel Logo">
 </p>
 
-## About Laravel
+# E-Library - Platform Perpustakaan Digital
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+E-Library adalah platform perpustakaan digital berbasis web yang dibangun dengan Laravel 12. Aplikasi ini menyediakan manajemen buku digital (Ebook) dengan klasifikasi kategori, relasi mata kuliah, pencarian cepat, serta sistem pertahanan keamanan multi-role (User, Dosen, Admin, Superadmin).
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Aplikasi ini telah direfaktor menggunakan **Clean Architecture** (pola berlapis) untuk memastikan skalabilitas, efisiensi tinggi, kemudahan pengujian unit (testability), dan kode bersih bebas spaghetti.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## 🚀 Fitur Utama
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+1. **Autentikasi & Otorisasi Multi-Role**:
+   - **Superadmin**: Akses penuh ke seluruh fitur dan pengaturan role pengguna.
+   - **Admin**: Mengelola buku, kategori, mata kuliah, dan status pengguna biasa (tidak bisa memodifikasi Superadmin).
+   - **Dosen**: Mengupload dan mengedit buku digital.
+   - **User**: Mencari, mengunduh, dan melakukan preview PDF buku.
+2. **Manajemen Ebook**: Upload file PDF (hingga 30MB), cover gambar, download count tracking, dan download PDF aman.
+3. **Kategori & Mata Kuliah**: Pengelompokan buku berdasarkan kategori dinamis dan mata kuliah tertentu yang dapat diaktifkan/dinonaktifkan secara instan.
+4. **Pencarian & Penyaringan**: Cari buku berdasarkan judul, kategori, dan mata kuliah secara real-time.
+5. **Benteng Keamanan Anti-Kudeta**: Proteksi berlapis pada tingkat controller dan service untuk menghalangi Admin mengambil alih/menghapus akun Superadmin atau menghapus akun mereka sendiri.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+---
 
-## Laravel Sponsors
+## 🏗️ Clean Architecture
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+Kode program dipisahkan berdasarkan tanggung jawabnya ke dalam beberapa layer terisolasi:
 
-### Premium Partners
+```text
+app/
+├── Http/
+│   ├── Controllers/             <-- Presentation Layer (Hanya menangani request, response & views)
+│   │   ├── AdminController.php
+│   │   └── EbookController.php
+│   ├── Middleware/
+│   │   └── IsAdmin.php
+│   └── Requests/                <-- Validation Layer (Validasi input request yang didelegasikan)
+│       ├── StoreBookRequest.php
+│       ├── UpdateBookRequest.php
+│       ├── StoreCategoryRequest.php
+│       ├── StoreCourseRequest.php
+│       └── UpdateUserRequest.php
+├── Models/                      <-- Domain/Entity Layer (Struktur data Eloquent)
+│   ├── Category.php
+│   ├── Course.php
+│   ├── Ebook.php
+│   └── User.php
+├── Repositories/                <-- Infrastructure Layer (Query database terisolasi)
+│   ├── Contracts/               <-- Interface/Abstraksi Repository
+│   │   ├── CategoryRepositoryInterface.php
+│   │   ├── CourseRepositoryInterface.php
+│   │   ├── EbookRepositoryInterface.php
+│   │   └── UserRepositoryInterface.php
+│   └── Eloquent/                <-- Implementasi Query dengan Eloquent ORM
+│       ├── CategoryRepository.php
+│       ├── CourseRepository.php
+│       ├── EbookRepository.php
+│       └── UserRepository.php
+├── Services/                    <-- Application/Business Logic Layer (Logika bisnis utama)
+│   ├── CategoryService.php
+│   ├── CourseService.php
+│   ├── EbookService.php
+│   └── UserService.php
+└── Providers/
+    └── RepositoryServiceProvider.php <-- Dependency Injection binder untuk IOC Container
+```
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### Penjelasan Flow Layer
+1. **Request** masuk ke **Controller** (Presentation Layer).
+2. Request divalidasi secara otomatis menggunakan **Form Request** (Validation Layer).
+3. Controller memanggil **Service** (Business Logic Layer) untuk memproses logika bisnis (seperti pengecekan hak akses internal, pemrosesan file, dsb).
+4. Service berinteraksi dengan database melalui abstraksi **Repository** (Infrastructure Layer) sehingga database atau metode query bisa diganti di kemudian hari tanpa merusak logika bisnis.
 
-## Contributing
+---
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## 🛠️ Langkah Instalasi
 
-## Code of Conduct
+Ikuti langkah di bawah ini untuk menjalankan project di lokal Anda:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+1. **Clone Repository**:
+   ```bash
+   git clone <url-repository>
+   cd e-library
+   ```
 
-## Security Vulnerabilities
+2. **Instalasi Dependensi PHP**:
+   ```bash
+   composer install
+   ```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+3. **Instalasi Dependensi Frontend**:
+   ```bash
+   npm install
+   ```
 
-## License
+4. **Konfigurasi Environment**:
+   Salin file `.env.example` menjadi `.env` lalu sesuaikan kredensial database Anda (default menggunakan SQLite atau MySQL).
+   ```bash
+   copy .env.example .env
+   ```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+5. **Generate Application Key**:
+   ```bash
+   php artisan key:generate
+   ```
+
+6. **Migrasi Database & Seeding**:
+   ```bash
+   php artisan migrate --seed
+   ```
+
+7. **Buat Symlink Storage**:
+   Untuk menampilkan file PDF dan Cover gambar di browser:
+   ```bash
+   php artisan storage:link
+   ```
+
+8. **Jalankan Development Server**:
+   ```bash
+   # Terminal 1: Menjalankan Laravel server
+   php artisan serve
+
+   # Terminal 2: Menjalankan Vite bundler
+   npm run dev
+   ```
+
+---
+
+## 📝 Lisensi
+Platform E-Library ini dilisensikan di bawah lisensi [MIT](https://opensource.org/licenses/MIT).

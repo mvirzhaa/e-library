@@ -2,119 +2,90 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Ebook;
+use App\Http\Requests\StoreBookRequest;
+use App\Services\EbookService;
+use App\Services\CategoryService;
+use App\Services\CourseService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 class EbookController extends Controller
 {
+    protected $ebookService;
+    protected $categoryService;
+    protected $courseService;
+
+    public function __construct(
+        EbookService $ebookService,
+        CategoryService $categoryService,
+        CourseService $courseService
+    ) {
+        $this->ebookService = $ebookService;
+        $this->categoryService = $categoryService;
+        $this->courseService = $courseService;
+    }
+
+    /**
+     * Display a listing of books on the dashboard.
+     */
     public function index(Request $request)
     {
-        // 1. Ambil HANYA nama kategori & matkul yang statusnya AKTIF
-        $activeCategories = \App\Models\Category::where('is_active', true)->pluck('name');
-        $activeCourses = \App\Models\Course::where('is_active', true)->pluck('name');
+        // Get paginated books matching active categories and courses
+        $ebooks = $this->ebookService->getFilteredEbooks($request->all(), true, 10);
 
-        // 2. Buat Query Dasar: Filter buku berdasarkan status aktif tersebut
-        $query = \App\Models\Ebook::whereIn('category', $activeCategories)
-            ->where(function($q) use ($activeCourses) {
-                $q->whereIn('related_course', $activeCourses)
-                  ->orWhereNull('related_course')
-                  ->orWhere('related_course', ''); // Tetap tampilkan buku umum (tanpa matkul)
-            });
+        // Fetch dropdown options for filter form
+        $categories = $this->ebookService->getActiveCategories();
+        $courses = $this->ebookService->getActiveCourses();
+        $years = $this->ebookService->getPublishYears();
 
-        // 3. Fitur Pencarian & Filter (Bawaan Anda sebelumnya)
-        if ($request->has('search') && $request->search != '') {
-            $query->where('title', 'like', '%' . $request->search . '%');
-        }
+        // Get popular books
+        $popularBooks = $this->ebookService->getPopularEbooks(5, true);
 
-        if ($request->has('kategori') && $request->kategori != '') {
-            $query->where('category', $request->kategori);
-        }
-
-        if ($request->has('mata_kuliah') && $request->mata_kuliah != '') {
-            $query->where('related_course', $request->mata_kuliah);
-        }
-
-        // 4. Ambil datanya (Paginasi)
-        $ebooks = $query->latest()->paginate(10);
-
-        // Kirim juga data kategori & matkul aktif ke View untuk dropdown filter di Dashboard
-        $categories = \App\Models\Category::where('is_active', true)->get();
-        $courses = \App\Models\Course::where('is_active', true)->get();
-
-        $years = \App\Models\Ebook::select('publish_year')
-                    ->distinct()
-                    ->orderBy('publish_year', 'desc')
-                    ->pluck('publish_year');
-
-        // --- TAMBAHAN BARU: Mengambil data buku terpopuler ---
-        $popularBooks = \App\Models\Ebook::whereIn('category', $activeCategories)
-            ->where(function($q) use ($activeCourses) {
-                $q->whereIn('related_course', $activeCourses)
-                  ->orWhereNull('related_course')
-                  ->orWhere('related_course', '');
-            })
-            ->orderBy('download_count', 'desc')
-            ->take(5) // Ambil 5 buku terpopuler
-            ->get();
-
-        // Jangan lupa $popularBooks dimasukkan ke dalam compact()
         return view('dashboard', compact('ebooks', 'categories', 'courses', 'years', 'popularBooks'));
     }
 
+    /**
+     * Show the form for creating a new book (user upload).
+     */
     public function create()
     {
-        $categories = \App\Models\Category::where('is_active', true)->get(); // Hanya ambil yang aktif
-        $courses = \App\Models\Course::where('is_active', true)->get();    // Hanya ambil yang aktif
+        $categories = $this->ebookService->getActiveCategories();
+        $courses = $this->ebookService->getActiveCourses();
+
         return view('ebooks.create', compact('categories', 'courses'));
     }
 
-    public function store(Request $request)
+    /**
+     * Store a newly created book.
+     */
+    public function store(StoreBookRequest $request)
     {
-        $request->validate([
-            'judul_buku' => 'required|max:255',
-            'penerbit' => 'required|max:255',
-            'tahun_terbit' => 'required|numeric',
-            'file_pdf' => 'required|mimes:pdf|max:30720', // 30MB
-            'cover_image' => 'nullable|image|max:2048',
-        ]);
-
-        $pdfPath = $request->file('file_pdf')->store('ebooks', 'public');
-        $coverPath = null;
-        if ($request->hasFile('cover_image')) {
-            $coverPath = $request->file('cover_image')->store('covers', 'public');
-        }
-
-        Ebook::create([
-            'title'          => $request->judul_buku,
-            'slug'           => Str::slug($request->judul_buku . '-' . time()),
-            'publisher'      => $request->penerbit,
-            'publish_year'   => $request->tahun_terbit,
-            'category'       => $request->kategori,
-            'is_textbook'    => $request->has('is_buku_kuliah'),
-            'related_course' => $request->mata_kuliah_terkait,
-            'file_path'      => $pdfPath,
-            'cover_path'     => $coverPath,
-            'download_count' => 0
-        ]);
+        $this->ebookService->createEbook(
+            $request->validated(),
+            $request->file('file_pdf'),
+            $request->file('cover_image')
+        );
 
         return redirect()->route('dashboard')->with('success', 'Buku berhasil diupload!');
     }
 
+    /**
+     * Download the specified book.
+     */
     public function download($id)
     {
-        $ebook = Ebook::findOrFail($id);
-        $ebook->increment('download_count');
-        return Storage::disk('public')->download($ebook->file_path, $ebook->slug . '.pdf');
+        $downloadInfo = $this->ebookService->getDownloadResponse($id);
+
+        return Storage::disk('public')->download($downloadInfo['file_path'], $downloadInfo['filename']);
     }
 
-    // Fungsi untuk menampilkan halaman Preview PDF
+    /**
+     * Preview the specified book.
+     */
     public function preview($id)
     {
-        $ebook = \App\Models\Ebook::findOrFail($id);
+        $ebook = $this->ebookService->findBook($id);
 
-        // Kita kirim data buku ke halaman tampilan preview
         return view('ebooks.preview', compact('ebook'));
     }
 }

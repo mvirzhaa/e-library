@@ -2,270 +2,234 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreBookRequest;
+use App\Http\Requests\UpdateBookRequest;
+use App\Http\Requests\StoreCategoryRequest;
+use App\Http\Requests\StoreCourseRequest;
+use App\Http\Requests\UpdateUserRequest;
+use App\Services\UserService;
+use App\Services\EbookService;
+use App\Services\CategoryService;
+use App\Services\CourseService;
 use Illuminate\Http\Request;
-use App\Models\Ebook;
-use App\Models\User;
+use Illuminate\Validation\ValidationException;
 
 class AdminController extends Controller
 {
-    // 1. Dashboard Statistik
+    protected $userService;
+    protected $ebookService;
+    protected $categoryService;
+    protected $courseService;
+
+    public function __construct(
+        UserService $userService,
+        EbookService $ebookService,
+        CategoryService $categoryService,
+        CourseService $courseService
+    ) {
+        $this->userService = $userService;
+        $this->ebookService = $ebookService;
+        $this->categoryService = $categoryService;
+        $this->courseService = $courseService;
+    }
+
+    /**
+     * Display the Admin Dashboard statistics.
+     */
     public function index()
     {
-        $stats = [
-            'buku' => Ebook::count(),
-            'user' => User::where('role', 'user')->count(),
-            'admin' => User::where('role', 'admin')->count(),
-            'download' => Ebook::sum('download_count'),
-        ];
-
+        $stats = $this->userService->getDashboardStats();
         return view('admin.dashboard', compact('stats'));
     }
 
-    // 2. Manajemen Buku (List)
+    /**
+     * Display a listing of books for management.
+     */
     public function books()
     {
-        $books = Ebook::latest()->paginate(10);
+        $books = $this->ebookService->getAdminBookList(10);
         return view('admin.books', compact('books'));
     }
 
-    // Menampilkan halaman form tambah buku
+    /**
+     * Show the form for adding a new book.
+     */
     public function createBook()
     {
         if (!in_array(auth()->user()->role, ['admin', 'superadmin', 'dosen'])) {
             abort(403, 'Maaf, hanya Dosen dan Admin yang boleh mengupload buku.');
         }
-        // Ambil kategori & matkul yang aktif saja
-        $categories = \App\Models\Category::where('is_active', true)->get();
-        $courses = \App\Models\Course::where('is_active', true)->get();
 
+        $categories = $this->ebookService->getActiveCategories();
+        $courses = $this->ebookService->getActiveCourses();
 
         return view('admin.books_create', compact('categories', 'courses'));
     }
 
-
-    // Memproses data simpan buku
-    public function storeBook(\Illuminate\Http\Request $request)
+    /**
+     * Store a newly created book.
+     */
+    public function storeBook(StoreBookRequest $request)
     {
         if (!in_array(auth()->user()->role, ['admin', 'superadmin', 'dosen'])) {
             abort(403, 'Maaf, hanya Dosen dan Admin yang boleh mengupload buku.');
         }
-        $request->validate([
-            'judul_buku' => 'required|max:255',
-            'penerbit' => 'required|max:255',
-            'tahun_terbit' => 'required|numeric',
-            'kategori' => 'required',
-            'file_pdf' => 'required|mimes:pdf|max:30720', // Max 30MB
-            'cover_image' => 'nullable|image|max:2048', // Max 2MB
-        ]);
 
-        // Simpan File PDF
-        $pdfPath = $request->file('file_pdf')->store('ebooks', 'public');
-
-        // Simpan Gambar Cover (Jika ada)
-        $coverPath = null;
-        if ($request->hasFile('cover_image')) {
-            $coverPath = $request->file('cover_image')->store('covers', 'public');
-        }
-
-        // Masukkan ke Database
-        \App\Models\Ebook::create([
-            'title'          => $request->judul_buku,
-            'slug'           => \Illuminate\Support\Str::slug($request->judul_buku . '-' . time()),
-            'publisher'      => $request->penerbit,
-            'publish_year'   => $request->tahun_terbit,
-            'category'       => $request->kategori,
-            'is_textbook'    => $request->has('is_buku_kuliah'),
-            'related_course' => $request->mata_kuliah_terkait,
-            'file_path'      => $pdfPath,
-            'cover_path'     => $coverPath,
-            'download_count' => 0
-        ]);
+        $this->ebookService->createEbook(
+            $request->validated(),
+            $request->file('file_pdf'),
+            $request->file('cover_image')
+        );
 
         return redirect()->route('admin.books')->with('success', 'Buku baru berhasil ditambahkan!');
     }
 
-    // 3. Manajemen User (List)
+    /**
+     * Display a listing of registered users.
+     */
     public function users()
     {
         if (auth()->user()->role === 'dosen') {
             abort(403, 'Akses Ditolak: Dosen hanya diizinkan mengelola buku.');
         }
-        $users = User::latest()->paginate(10);
+
+        $users = $this->userService->getUsersPaginated(10);
         return view('admin.users', compact('users'));
     }
 
-    // 4. Hapus Buku
+    /**
+     * Delete the specified book.
+     */
     public function destroyBook($id)
     {
-        Ebook::findOrFail($id)->delete();
+        $this->ebookService->deleteEbook($id);
         return back()->with('success', 'Buku berhasil dihapus.');
     }
 
-    // 5. Hapus User
-   public function destroyUser($id)
+    /**
+     * Delete the specified user.
+     */
+    public function destroyUser($id)
     {
-        $user = \App\Models\User::findOrFail($id);
-
-        // --- BENTENG KEAMANAN ANTI KUDETA ---
-        if (auth()->user()->role === 'admin' && $user->role === 'superadmin') {
-            return back()->with('error', 'Pemberontakan! Admin tidak bisa menghapus Superadmin.');
+        try {
+            $this->userService->deleteUser($id, auth()->user());
+            return back()->with('success', 'Akun berhasil dihapus selamanya.');
+        } catch (ValidationException $e) {
+            $errors = $e->errors();
+            return back()->with('error', $errors['error'][0] ?? 'Gagal menghapus user.');
         }
-
-        if (auth()->id() === $user->id) {
-            return back()->with('error', 'Anda tidak bisa menghapus akun Anda sendiri.');
-        }
-        // ------------------------------------
-
-        $user->delete();
-
-        return back()->with('success', 'Akun berhasil dihapus selamanya.');
     }
 
-    // --- MANAJEMEN KATEGORI ---
+    /**
+     * Display all categories.
+     */
     public function categories()
     {
         if (auth()->user()->role === 'dosen') {
             abort(403, 'Akses Ditolak: Dosen hanya diizinkan mengelola buku.');
         }
-        $categories = \App\Models\Category::latest()->get();
+
+        $categories = $this->categoryService->getAllCategories();
         return view('admin.categories', compact('categories'));
     }
 
-    public function storeCategory(Request $request)
+    /**
+     * Store a new category.
+     */
+    public function storeCategory(StoreCategoryRequest $request)
     {
-        $request->validate(['name' => 'required|unique:categories,name']);
-        \App\Models\Category::create(['name' => $request->name]);
+        $this->categoryService->createCategory($request->validated());
         return back()->with('success', 'Kategori berhasil ditambahkan.');
     }
 
-   public function toggleCategory($id)
+    /**
+     * Toggle the status of a category.
+     */
+    public function toggleCategory($id)
     {
-        $category = \App\Models\Category::findOrFail($id);
-        $category->update(['is_active' => !$category->is_active]); // Membalikkan status (true jadi false, dst)
-
+        $category = $this->categoryService->toggleCategoryStatus($id);
         $status = $category->is_active ? 'diaktifkan' : 'dinonaktifkan';
         return back()->with('success', "Kategori berhasil {$status}.");
     }
 
-    // --- MANAJEMEN MATA KULIAH ---
+    /**
+     * Display all courses.
+     */
     public function courses()
     {
         if (auth()->user()->role === 'dosen') {
             abort(403, 'Akses Ditolak: Dosen hanya diizinkan mengelola buku.');
         }
-        $courses = \App\Models\Course::latest()->get();
+
+        $courses = $this->courseService->getAllCourses();
         return view('admin.courses', compact('courses'));
     }
 
-    public function storeCourse(Request $request)
+    /**
+     * Store a new course.
+     */
+    public function storeCourse(StoreCourseRequest $request)
     {
-        $request->validate(['name' => 'required|unique:courses,name']);
-        \App\Models\Course::create(['name' => $request->name]);
+        $this->courseService->createCourse($request->validated());
         return back()->with('success', 'Mata Kuliah berhasil ditambahkan.');
     }
 
+    /**
+     * Toggle the status of a course.
+     */
     public function toggleCourse($id)
     {
-        $course = \App\Models\Course::findOrFail($id);
-        $course->update(['is_active' => !$course->is_active]);
-
+        $course = $this->courseService->toggleCourseStatus($id);
         $status = $course->is_active ? 'diaktifkan' : 'dinonaktifkan';
         return back()->with('success', "Mata Kuliah berhasil {$status}.");
     }
 
-    public function updateRole(\Illuminate\Http\Request $request, $id)
+    /**
+     * Update user role and status.
+     */
+    public function updateRole(UpdateUserRequest $request, $id)
     {
-        $user = \App\Models\User::findOrFail($id);
-
-        // --- BENTENG KEAMANAN ANTI KUDETA ---
-        // 1. Admin dilarang mengubah data Superadmin
-        if (auth()->user()->role === 'admin' && $user->role === 'superadmin') {
-            return back()->with('error', 'Lancang! Admin tidak diizinkan mengubah data Superadmin.');
+        try {
+            $user = $this->userService->updateUserRoleAndStatus($id, $request->validated(), auth()->user());
+            return back()->with('success', "Akun {$user->name} berhasil diperbarui.");
+        } catch (ValidationException $e) {
+            $errors = $e->errors();
+            return back()->with('error', $errors['error'][0] ?? 'Gagal memperbarui user.');
         }
-
-        // 2. Admin dilarang mengangkat Superadmin baru
-        if (auth()->user()->role === 'admin' && $request->role === 'superadmin') {
-            return back()->with('error', 'Akses Ilegal: Hanya Superadmin yang bisa mengangkat Superadmin baru.');
-        }
-
-        // 3. Cegah ganti role sendiri dari sini
-        if (auth()->id() === $user->id && $request->role !== auth()->user()->role) {
-            return back()->with('error', 'Gunakan menu profil untuk mengubah data Anda sendiri.');
-        }
-        // ------------------------------------
-
-        $user->update([
-            'role' => $request->role,
-            'is_active' => $request->is_active
-        ]);
-
-        return back()->with('success', "Akun {$user->name} berhasil diperbarui.");
     }
 
-    // 1. Fungsi Menampilkan Form Edit
+    /**
+     * Show the edit form for the specified book.
+     */
     public function editBook($id)
     {
-        // Gembok Dosen, Admin, Superadmin
         if (!in_array(auth()->user()->role, ['admin', 'superadmin', 'dosen'])) {
             abort(403, 'Akses Ditolak');
         }
 
-        $book = \App\Models\Ebook::findOrFail($id);
-        $categories = \App\Models\Category::all(); // Ambil data kategori
-        $courses = \App\Models\Course::all();     // Ambil data matkul
+        $book = $this->ebookService->findBook($id);
+        $categories = $this->categoryService->getAllCategories();
+        $courses = $this->courseService->getAllCourses();
 
         return view('admin.books_edit', compact('book', 'categories', 'courses'));
     }
 
-    // 2. Fungsi Memproses Perubahan Data
-    public function updateBook(\Illuminate\Http\Request $request, $id)
+    /**
+     * Process changes to the specified book.
+     */
+    public function updateBook(UpdateBookRequest $request, $id)
     {
         if (!in_array(auth()->user()->role, ['admin', 'superadmin', 'dosen'])) {
             abort(403, 'Akses Ditolak');
         }
 
-        $book = \App\Models\Ebook::findOrFail($id);
-
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'publisher' => 'nullable|string|max:255',
-            'publish_year' => 'nullable|integer',
-            'category' => 'required|string',
-            'related_course' => 'nullable|string',
-            'cover' => 'nullable|image|mimes:jpeg,png,jpg|max:2048', // Cover baru opsional
-            'file' => 'nullable|mimes:pdf|max:20000',               // PDF baru opsional
-        ]);
-
-        // JIKA ADA UPLOAD COVER BARU
-        if ($request->hasFile('cover')) {
-            // Hapus cover lama dari server
-            if ($book->cover_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($book->cover_path)) {
-                \Illuminate\Support\Facades\Storage::disk('public')->delete($book->cover_path);
-            }
-            // Simpan cover baru
-            $book->cover_path = $request->file('cover')->store('covers', 'public');
-        }
-
-        // JIKA ADA UPLOAD PDF BARU
-        if ($request->hasFile('file')) {
-            // Hapus PDF lama dari server
-            if ($book->file_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($book->file_path)) {
-                \Illuminate\Support\Facades\Storage::disk('public')->delete($book->file_path);
-            }
-            // Simpan PDF baru
-            $book->file_path = $request->file('file')->store('ebooks', 'public');
-        }
-
-        // Update data teks
-        $book->title = $request->title;
-        $book->publisher = $request->publisher;
-        $book->publish_year = $request->publish_year;
-        $book->category = $request->category;
-        $book->related_course = $request->related_course;
-
-        $book->save();
+        $this->ebookService->updateEbook(
+            $id,
+            $request->validated(),
+            $request->file('file'),
+            $request->file('cover')
+        );
 
         return redirect()->route('admin.books')->with('success', 'Buku berhasil diperbarui!');
     }
-
 }
