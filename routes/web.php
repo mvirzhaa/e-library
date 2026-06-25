@@ -5,25 +5,29 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\EbookController;
 use App\Http\Controllers\AdminController; // Nanti kita buat ini
+use App\Http\Controllers\SsoController;
 
 // 1. Landing Page (Public) - Tidak perlu login
 Route::get('/', function () {
     return view('landing');
 });
 
+// SSO ROUTE
+Route::get('/sso/callback', [SsoController::class, 'callback'])->name('sso.callback');
+
 // 2. Grup User & Admin (Harus Login)
 Route::middleware('auth')->group(function () {
 
     // Dashboard User (Tempat list buku)
     // Route Dashboard (Pengecekan Role)
-Route::get('/dashboard', function (Request $request) { // 1. Tambahkan Request $request disini
-    if (in_array(auth()->user()->role, ['admin', 'superadmin']))   {
-        return redirect()->route('admin.dashboard');
-    }
+    Route::get('/dashboard', function (Request $request) { // 1. Tambahkan Request $request disini
+        if (in_array(auth()->user()->role, ['admin', 'superadmin'])) {
+            return redirect()->route('admin.dashboard');
+        }
 
-    // 2. Kirim $request ke dalam fungsi index
-    return app(App\Http\Controllers\EbookController::class)->index($request);
-})->name('dashboard');
+        // 2. Kirim $request ke dalam fungsi index
+        return app(App\Http\Controllers\EbookController::class)->index($request);
+    })->name('dashboard');
 
     // Fitur Download
     Route::get('/download/{id}', [EbookController::class, 'download'])->name('ebooks.download');
@@ -64,7 +68,6 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/courses', [\App\Http\Controllers\AdminController::class, 'courses'])->name('courses');
     Route::post('/courses', [\App\Http\Controllers\AdminController::class, 'storeCourse'])->name('courses.store');
     Route::patch('/courses/{id}/toggle', [\App\Http\Controllers\AdminController::class, 'toggleCourse'])->name('courses.toggle');
-
 });
 
 // Route Profil Bawaan Breeze
@@ -75,4 +78,4 @@ Route::middleware('auth')->group(function () {
 });
 
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
